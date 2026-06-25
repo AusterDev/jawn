@@ -1,17 +1,23 @@
 package com.github.AusterDev.jawn;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    static void main() {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        IO.println(String.format("Hello and welcome!"));
+import com.github.AusterDev.jawn.core.Config;
+import com.github.AusterDev.jawn.core.JawnClient;
+import io.github.cdimascio.dotenv.Dotenv;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            IO.println("i = " + i);
+public class Main {
+    static void main() throws Exception {
+        String envrionment = System.getProperty("env", "dev");
+
+        if ("dev".equalsIgnoreCase(envrionment)) {
+            Dotenv dotenv = Dotenv.configure()
+                    .ignoreIfMalformed()
+                    .ignoreIfMissing()
+                    .load();
+
+            dotenv.entries().forEach(e -> System.setProperty(e.getKey(), e.getValue()));
         }
+
+        JawnClient client = new JawnClient(Config.load());
+        client.start();
     }
 }
