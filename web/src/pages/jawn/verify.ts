@@ -3,9 +3,9 @@ import Redis from "ioredis";
 import type { VerificationResult } from "../../types/index";
 
 const redis = new Redis({
-  host: import.meta.env.REDIS_HOST,
-  port: parseInt(import.meta.env.REDIS_PORT, 10) || 6379,
-  password: import.meta.env.REDIS_PASSWORD,
+  host: process.env.REDIS_HOST,
+  port: parseInt(process.env.REDIS_PORT!, 10) || 6379,
+  password: process.env.REDIS_PASSWORD,
 });
 
 export const GET: APIRoute = async ({ url, cookies }) => {
