@@ -26,6 +26,9 @@ public class Config {
     @EnvProperty("REDIS_PORT")
     private int redisPort;
 
+    @EnvProperty("REDIS_PASSWORD")
+    private String redisPassword;
+
     @EnvProperty("GOOGLE_CLIENT_ID")
     private String googleClientId;
 
@@ -87,6 +90,7 @@ public class Config {
     public String getPostVerifiedRoleId() { return postVerifiedRoleId; }
     public String getRedisHost() { return redisHost; }
     public int getRedisPort() { return redisPort; }
+    public String getRedisPassword() { return redisPassword; }
     public String getGoogleClientId() { return googleClientId; }
     public String getWebHost() { return webHost; }
     public String getVerificationLogsChannel() { return verificationLogsChannel; }

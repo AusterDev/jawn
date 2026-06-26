@@ -19,6 +19,7 @@ public class RedisManager {
         RedisURI uri = RedisURI.builder()
                 .withHost(config.getRedisHost())
                 .withPort(config.getRedisPort())
+                .withPassword(config.getRedisPassword())
                 .build();
 
         RedisClient redisClient = RedisClient.create(uri);

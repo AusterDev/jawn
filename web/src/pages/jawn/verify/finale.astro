@@ -1,0 +1,133 @@
+---
+import type { VerificationResult } from "../../../types";
+import Layout from "../../Layout.astro";
+
+const { cookies } = Astro;
+
+let result: VerificationResult | null = null;
+let parseError = false;
+
+try {
+    const cookieData = cookies.get("result");
+    if (cookieData) {
+        result = cookieData.json() as VerificationResult;
+    }
+} catch (e) {
+    console.error(e);
+    parseError = true;
+}
+
+const isVerified = result?.verified ?? false;
+const degreeName = result?.degreeType ? result.degreeType.toUpperCase() : "N/A";
+---
+
+<Layout title={isVerified ? "Success" : "Failure"}>
+    <main class="w-full min-h-screen bg-[#fafafa] text-black flex items-center justify-center p-4 sm:p-8 antialiased font-sans relative overflow-hidden">
+        
+        <div class="absolute inset-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.80]">
+            <img 
+                src="/image.png" 
+                alt="" 
+                class="w-full h-full object-cover scale-105"
+            />
+        </div>
+
+        <div class="w-full max-w-4xl bg-white border-[3px] md:border-[4px] border-black rounded-2xl p-6 sm:p-10 md:p-16 flex flex-col md:flex-row items-center md:items-stretch gap-8 md:gap-12 relative z-10 shadow-sm">
+            
+            {parseError || !result ? (
+                <div class="w-full text-center py-12 font-mono">
+                    <h1 class="text-xl md:text-2xl font-bold text-red-600 uppercase mb-3">Error</h1>
+                    <p class="text-sm md:text-base text-gray-600">Session state missing or malformed.</p>
+                </div>
+            ) : isVerified ? (
+                <>
+                
+                    <div class="w-full flex-1 flex flex-col justify-center text-center md:text-left space-y-6 md:space-y-8 py-2 md:py-4">
+                        <div class="space-y-3 md:space-y-4">
+                            <h1 class="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight text-black leading-[1.2] md:leading-[1.15]">
+                                Welcome to IITM BS:<br class="hidden md:block" />Multi-Stream Hub!
+                            </h1>
+                            <p class="text-sm md:text-lg text-gray-700 leading-relaxed max-w-xl mx-auto md:mx-0 font-normal">
+                                Your student email has been verified. Jawn has sent you a confirmation message on Discord.
+                            </p>
+                        </div>
+                    </div>
+
+                
+                    <div class="w-full md:w-64 border-[3px] md:border-[4px] border-black rounded-2xl p-5 md:p-6 flex flex-col justify-between items-center text-center bg-gray-50 gap-6 md:gap-8 md:min-h-[380px]">
+                        <div class="w-full space-y-4 md:space-y-6">
+                            <button 
+                                id="copy-btn" 
+                                data-id={result.userID}
+                                class="w-full border-[2.5px] md:border-[3px] border-black rounded-xl p-3.5 bg-white hover:bg-gray-100 active:translate-y-0.5 transition-all focus:outline-none flex flex-col items-center justify-center gap-1 group"
+                            >
+                                <span class="text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 uppercase font-mono">DISCORD ID</span>
+                                <span id="btn-text" class="text-sm md:text-base font-bold text-black break-all font-mono tracking-tight">
+                                    {result.userID.length > 14 ? result.userID.substring(0, 14) + "..." : result.userID}
+                                </span>
+                            </button>
+
+                            <div class="w-full py-4 md:py-6 flex flex-col items-center justify-center border-b-2 border-dashed border-gray-200">
+                                <span class="text-[10px] md:text-[11px] font-bold tracking-widest text-gray-400 uppercase font-mono mb-1 md:mb-2">DEGREE</span>
+                                <span class="text-4xl md:text-5xl font-black text-[#584126] tracking-tighter">{degreeName}</span>
+                            </div>
+                        </div>
+
+                        <a 
+                            href="https://discord.com" 
+                            class="w-full border-[2.5px] md:border-[3px] border-black rounded-xl py-2.5 md:py-3 px-4 text-xs md:text-sm font-bold text-white bg-[#584126] hover:bg-[#3E2D1A] text-center transition-colors uppercase tracking-widest shadow-sm"
+                        >
+                            Go to Discord
+                        </a>
+                    </div>
+                </>
+            ) : (
+                <div class="w-full flex flex-col items-center text-center space-y-6 md:space-y-8 py-4 md:py-8">
+                    <div class="w-16 h-16 md:w-20 md:h-20 border-[3px] md:border-[4px] border-black rounded-full flex items-center justify-center bg-red-50 text-red-600 font-bold text-xl md:text-2xl shadow-sm">
+                        ✕
+                    </div>
+                    <div class="space-y-2 md:space-y-3 max-w-lg">
+                        <h1 class="text-2xl md:text-3xl font-extrabold text-black uppercase tracking-tight">Access Rejected</h1>
+                        <p class="text-sm md:text-base text-gray-600 leading-relaxed">
+                            {result.reason || "Your email is not issued by IIT Madras."}
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md pt-2 md:pt-4">
+                        <a href="https://discord.com" class="flex-1 border-[2.5px] md:border-[3px] border-black rounded-xl py-2.5 text-xs md:text-sm font-bold text-black text-center hover:bg-gray-50 transition-colors uppercase tracking-wider">
+                            [ Retry ]
+                        </a>
+                        <a href="https://study.iitm.ac.in/es/faq.html" class="flex-1 border-[2.5px] md:border-[3px] border-black rounded-xl py-2.5 text-xs md:text-sm font-bold text-gray-400 text-center hover:bg-gray-50 transition-colors uppercase tracking-wider">
+                            FAQ Page
+                        </a>
+                    </div>
+                </div>
+            )}
+
+        </div>
+    </main>
+</Layout>
+
+<script>
+    const copyBtn = document.getElementById('copy-btn');
+    const btnText = document.getElementById('btn-text');
+
+    if (copyBtn && btnText) {
+        const rawId = copyBtn.getAttribute('data-id') || '';
+        const originalText = btnText.innerText;
+
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(rawId);
+                btnText.innerText = "COPIED!";
+                btnText.style.color = "#584126";
+                
+                setTimeout(() => {
+                    btnText.innerText = originalText;
+                    btnText.style.color = "";
+                }, 1200);
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
+</script>
