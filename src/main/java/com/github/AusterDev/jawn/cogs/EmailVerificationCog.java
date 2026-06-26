@@ -13,7 +13,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 
 @Cog(name = "Email verification", description = "Commands to verify student emails")
 public class EmailVerificationCog extends CogAbstract {
-
     private final JawnClient client;
 
     public EmailVerificationCog(JawnClient client) {

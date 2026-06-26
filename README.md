@@ -1,116 +1,51 @@
+# Context
+This is designed for the IITM BS: Multi-Stream Hub discord server where we needed to verify the studentship of members and remove inactive accounts.
+
 # Functional features
 1. Connects to the discord gateway and awaits for user-commands.
-2. Command: "/verify" or perhaps a message component (button) to start the student verification process.
+2. Users click on a button component to initiate the verification flow.
 3. Web dashboard to process the entirety of verification.
 4. Automations as required.
 
-# Modus operandi
+# Modus operandi: student verification
 
-The web server and the bot are separated into their own environments. Both services communicate through the redis PUB-SUB model.
+Every student has an email address issued by IIT Madras, I am prompting them to authenticate their emails through Google OAuth. Thus verifying their student credentials. The server only sees their email address and the degree they are in.
 
-Whenever someone initiates the verification process from discord, the bot will send a message to the server with the following:
+For this, I needed a web server and discord bot to receive callback from google and assign roles in the server respectively. Thus I have divided the project into two modules: bot and web-server. Both services communicate through the redis PUB-SUB model.
 
+Whenever someone initiates the verification process from discord, the bot will send a message to the server containing the unique verification session ID.
+
+As for the session data, I am following this:
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "UserSession",
+  "title": "VerificationSession",
   "type": "object",
   "properties": {
-    "id": {
-      "type": "integer",
+    "session_id": {
+      "type": "string",
       "description": "The unique session ID."
     },
     "user_id": {
       "type": "string",
       "description": "The unique Discord ID of the user."
     },
-    "validity": {
-      "type": "integer",
-      "description": "The validity period (mins"
+    "degree_type": {
+      "type": "string",
+      "description": "Degree which the user belongs to."
+    },
+    "verified": {
+      "type": "boolean",
+      "description": "Whether the user has been verified."
     },
     "created_at": {
       "type": "integer",
       "description": "The creation timestamp (epoch)."
     }
   },
-  "required": [
-    "user_id",
-    "validity",
-    "created_at"
-  ],
   "additionalProperties": false
 }
 ```
 
-The web server processes the request and responds with the following:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "SessionResponse",
-  "type": "object",
-  "properties": {
-    "error": {
-      "oneOf": [
-        {
-          "type": "null",
-          "description": "No error occurred."
-        },
-        {
-          "type": "object",
-          "description": "Error details if the request failed.",
-          "properties": {
-            "type": {
-              "type": "string",
-              "description": "The category or code of the error."
-            },
-            "msg": {
-              "type": "string",
-              "description": "A human-readable error message."
-            }
-          },
-          "required": [
-            "type",
-            "msg"
-          ],
-          "additionalProperties": false
-        }
-      ]
-    },
-    "r": {
-      "type": "object",
-      "description": "The result payload containing session details.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique identifier for the session."
-        },
-        "user_id": {
-          "type": "string",
-          "description": "The Discord ID of the user."
-        },
-        "verified": {
-          "type": "boolean",
-          "description": "Indicates whether the session or user is verified."
-        },
-        "time_spent": {
-          "type": "integer",
-          "description": "The amount of time spent."
-        }
-      },
-      "required": [
-        "id",
-        "user_id",
-        "verified",
-        "time_spent"
-      ],
-      "additionalProperties": false
-    }
-  },
-  "required": [
-    "error",
-    "r"
-  ],
-  "additionalProperties": false
-}
-```
+# Contributions
+Just make a PR.
