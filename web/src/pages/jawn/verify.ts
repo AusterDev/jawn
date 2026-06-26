@@ -4,7 +4,7 @@ import type { VerificationResult } from "../../types/index";
 
 const redis = new Redis({
   host: import.meta.env.REDIS_HOST,
-  port: parseInt(import.meta.env.REDIS_PORT, 10),
+  port: parseInt(import.meta.env.REDIS_PORT, 10) || 6379,
   password: import.meta.env.REDIS_PASSWORD,
 });
 
