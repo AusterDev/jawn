@@ -2,11 +2,22 @@ import type { APIRoute } from "astro";
 import Redis from "ioredis";
 import type { VerificationResult } from "../../types/index";
 
-const redis = new Redis({
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT!, 10) || 6379,
-  password: process.env.REDIS_PASSWORD,
-});
+let redis: Redis;
+try {
+  redis = new Redis({
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT || "6379", 10),
+    password: process.env.REDIS_PASSWORD,
+    maxRetriesPerRequest: 3,
+    connectTimeout: 5000,
+  });
+  redis.on("error", (err) => console.error(err));
+} catch (err) {
+  console.error(err);
+}
+
+const ALLOWED_DEGREES = ["ds", "es", "aes"] as const;
+const SESSION_TTL = 900;
 
 export const GET: APIRoute = async ({ url, cookies }) => {
   const code = url.searchParams.get("code");
@@ -25,22 +36,23 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     cookies.set("result", JSON.stringify(result), cookieOptions);
 
     return new Response(
-      `<html>
-      <head>
-        <meta http-equiv="refresh" content="0;url=${destination}">
-      </head>
-      <body>
-        <script>window.location.href = "${destination}";</script>
-      </body>
-    </html>`,
-      {
-        headers: { "Content-Type": "text/html" },
-      }
+      `<!DOCTYPE html>
+      <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=${encodeURI(destination)}">
+        </head>
+        <body>
+          <script>window.location.href = "${encodeURI(destination)}";</script>
+        </body>
+      </html>`,
+      { headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   };
 
+  const fallbackUrl = new URL("/jawn/verify/finale", url.origin).toString();
+
   if (!code || !sessionId) {
-    return Response.redirect(new URL("/jawn/verify/finale", url.origin), 302);
+    return Response.redirect(fallbackUrl, 302);
   }
 
   cookies.delete("result");
@@ -50,59 +62,76 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     const rawSession = await redis.get(redisKey);
 
     if (!rawSession) {
-      return Response.redirect(new URL("/jawn/verify/finale", url.origin), 302);
+      return Response.redirect(fallbackUrl, 302);
     }
 
-    const session = JSON.parse(rawSession);
+    let session;
+    try {
+      session = JSON.parse(rawSession);
+    } catch (e) {
+      console.error(e);
+      return Response.redirect(fallbackUrl, 302);
+    }
 
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code,
-        client_id: import.meta.env.GOOGLE_CLIENT_ID || "",
-        client_secret: import.meta.env.GOOGLE_CLIENT_SECRET || "",
-        redirect_uri: `${url.origin}/jawn/verify`,
-        grant_type: "authorization_code",
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-    const tokens = await tokenResponse.json();
+    let tokens;
+    try {
+      const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: controller.signal,
+        body: new URLSearchParams({
+          code,
+          client_id: process.env.GOOGLE_CLIENT_ID || "",
+          client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
+          redirect_uri: `${url.origin}/jawn/verify`,
+          grant_type: "authorization_code",
+        }),
+      });
 
-    if (!tokenResponse.ok) {
-      console.error("Google Token Exchange Failure:", tokens);
-      return Response.redirect(new URL("/jawn/verify/finale", url.origin), 302);
+      tokens = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        console.error(tokens);
+        return Response.redirect(fallbackUrl, 302);
+      }
+    } catch {
+      clearTimeout(timeoutId);
     }
 
     const profileResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
 
+    if (!profileResponse.ok) {
+      return Response.redirect(fallbackUrl, 302);
+    }
+
     const profile = await profileResponse.json();
-    const email = profile.email ? profile.email.toLowerCase() : "";
+    const email = profile.email ? profile.email.toLowerCase().trim() : "";
 
-    const allowedDegrees = ["ds", "es", "aes"];
     let detectedDegree: string | null = null;
-
-    if (email && email.endsWith(".study.iitm.ac.in")) {
-      const domainPart = email.split("@")[1];
-      const subdomain = domainPart.replace(".study.iitm.ac.in", "");
-
-      if (allowedDegrees.includes(subdomain)) {
+    const match = email.match(/^[^@]+@([^.]+)\.study\.iitm\.ac\.in$/);
+    
+    if (match) {
+      const subdomain = match[1];
+      if ((ALLOWED_DEGREES as readonly string[]).includes(subdomain)) {
         detectedDegree = subdomain;
       }
     }
 
-
+    const pipeline = redis.pipeline();
+    
     if (!detectedDegree) {
       session.verified = false;
       session.degree_type = "NONE";
 
-      await Promise.all([
-        redis.setex(redisKey, 900, JSON.stringify(session)),
-        redis.del(`user_session:${session.user_id}`),
-        redis.publish("user_verified", sessionId) 
-      ]);
+      pipeline.setex(redisKey, SESSION_TTL, JSON.stringify(session));
+      pipeline.del(`user_session:${session.user_id}`);
+      pipeline.publish("user_verified", sessionId);
+      await pipeline.exec();
 
       return terminateWithRedirect("/jawn/verify/finale", {
         userID: session.user_id,
@@ -110,26 +139,24 @@ export const GET: APIRoute = async ({ url, cookies }) => {
         verified: false,
         reason: "Your student email is not assigned by IIT Madras. Please use your authorized student email address."
       });
-
-    } else {
-      session.verified = true;
-      session.degree_type = detectedDegree;
-
-      await Promise.all([
-        redis.setex(redisKey, 900, JSON.stringify(session)),
-        redis.del(`user_session:${session.user_id}`),
-        redis.publish("user_verified", sessionId) 
-      ]);
-
-      return terminateWithRedirect(`/jawn/verify/finale`, {
-        userID: session.user_id,
-        degreeType: detectedDegree,
-        verified: true,
-      });
     }
 
+    session.verified = true;
+    session.degree_type = detectedDegree;
+
+    pipeline.setex(redisKey, SESSION_TTL, JSON.stringify(session));
+    pipeline.del(`user_session:${session.user_id}`);
+    pipeline.publish("user_verified", sessionId);
+    await pipeline.exec();
+
+    return terminateWithRedirect("/jawn/verify/finale", {
+      userID: session.user_id,
+      degreeType: detectedDegree,
+      verified: true,
+    });
+
   } catch (error) {
-    console.error("Callback core API route execution error:", error);
-    return Response.redirect(new URL("/jawn/verify/finale", url.origin), 302);
+    console.error(error);
+    return Response.redirect(fallbackUrl, 302);
   }
 };
