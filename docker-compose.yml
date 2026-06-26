@@ -25,6 +25,7 @@ services:
       - BOT_LOGS_CHANNEL_ID=${BOT_LOGS_CHANNEL_ID}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JAVA_OPTS=-XX:+UseG1GC -XX:+ExitOnOutOfMemoryError -DVERIFICATION_LOGS_CHANNEL=${VERIFICATION_LOGS_CHANNEL}
     depends_on:
       - redis
     networks:
@@ -35,8 +36,6 @@ services:
     build:
       context: ./web 
     container_name: astro-server
-    ports:
-      - "80:4321"
     environment:
       - REDIS_HOST=redis-service
       - REDIS_PORT=6379
@@ -48,6 +47,24 @@ services:
       - backend-net
     restart: unless-stopped
 
+  reverse-proxy:
+    image: caddy:2-alpine
+    container_name: reverse-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    command: caddy reverse-proxy --from jawn.jauster.xyz --to astro-server:4321
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - backend-net
+    restart: unless-stopped
+
 networks:
   backend-net:
     driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
