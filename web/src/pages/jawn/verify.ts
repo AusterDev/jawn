@@ -86,7 +86,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
           code,
           client_id: process.env.GOOGLE_CLIENT_ID || "",
           client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-          redirect_uri: `${url.origin}/jawn/verify`,
+          redirect_uri: `${process.env.WEB_HOST}/jawn/verify`,
           grant_type: "authorization_code",
         }),
       });

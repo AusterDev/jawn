@@ -43,6 +43,7 @@ services:
       - DEV=false
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - WEB_HOST=${WEB_HOST}
       
     depends_on:
       - redis
