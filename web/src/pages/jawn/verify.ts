@@ -19,7 +19,8 @@ try {
 const ALLOWED_DEGREES = ["ds", "es", "aes"] as const;
 const SESSION_TTL = 900;
 
-export const GET: APIRoute = async ({ url, cookies }) => {
+// 1. Destructure redirect from Astro's context object here
+export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const sessionId = state;
@@ -52,7 +53,8 @@ export const GET: APIRoute = async ({ url, cookies }) => {
   const fallbackUrl = new URL("/jawn/verify/finale", url.origin).toString();
 
   if (!code || !sessionId) {
-    return Response.redirect(fallbackUrl, 302);
+    // 2. Use Astro's redirect helper instead of Response.redirect
+    return redirect(fallbackUrl, 302);
   }
 
   cookies.delete("result");
@@ -62,7 +64,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     const rawSession = await redis.get(redisKey);
 
     if (!rawSession) {
-      return Response.redirect(fallbackUrl, 302);
+      return redirect(fallbackUrl, 302);
     }
 
     let session;
@@ -70,7 +72,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
       session = JSON.parse(rawSession);
     } catch (e) {
       console.error(e);
-      return Response.redirect(fallbackUrl, 302);
+      return redirect(fallbackUrl, 302);
     }
 
     const controller = new AbortController();
@@ -95,7 +97,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
 
       if (!tokenResponse.ok) {
         console.error(tokens);
-        return Response.redirect(fallbackUrl, 302);
+        return redirect(fallbackUrl, 302);
       }
     } catch {
       clearTimeout(timeoutId);
@@ -106,7 +108,7 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     });
 
     if (!profileResponse.ok) {
-      return Response.redirect(fallbackUrl, 302);
+      return redirect(fallbackUrl, 302);
     }
 
     const profile = await profileResponse.json();
@@ -157,6 +159,6 @@ export const GET: APIRoute = async ({ url, cookies }) => {
 
   } catch (error) {
     console.error(error);
-    return Response.redirect(fallbackUrl, 302);
+    return redirect(fallbackUrl, 302);
   }
 };
