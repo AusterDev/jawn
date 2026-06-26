@@ -9,6 +9,7 @@ services:
       - backend-net
     restart: unless-stopped
 
+  discord-bot:
     build:
       context: ./jawn  
       dockerfile: Dockerfile
@@ -16,16 +17,13 @@ services:
     environment:
       - REDIS_HOST=redis-service 
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - POST_VERIFIED_ROLE_ID=${POST_VERIIFED_ROLE_ID}
+      - POST_VERIFIED_ROLE_ID=${POST_VERIFIED_ROLE_ID}
       - WEB_HOST=${WEB_HOST}
       - BOT_LOGS_CHANNEL_ID=${BOT_LOGS_CHANNEL_ID}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-
     depends_on:
       - redis
     networks:
