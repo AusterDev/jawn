@@ -19,7 +19,6 @@ try {
 const ALLOWED_DEGREES = ["ds", "es", "aes"] as const;
 const SESSION_TTL = 900;
 
-// 1. Destructure redirect from Astro's context object here
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -53,7 +52,6 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const fallbackUrl = new URL("/jawn/verify/finale", url.origin).toString();
 
   if (!code || !sessionId) {
-    // 2. Use Astro's redirect helper instead of Response.redirect
     return redirect(fallbackUrl, 302);
   }
 

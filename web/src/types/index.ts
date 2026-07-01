@@ -1,6 +1,6 @@
 export type VerificationResult = {
-    userID: string;
-    degreeType: string | null;
+    user_id: string;
+    degree_type: string | null;
     verified: boolean;
-    reason?: string;
+    reason: string | null;
 }

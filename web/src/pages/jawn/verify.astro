@@ -1,0 +1,67 @@
+---
+import Layout from "../Layout.astro";
+---
+
+<Layout>
+    <div
+        class="w-full min-h-screen bg-[#fafafa] text-black flex items-center justify-center p-4 sm:p-8 antialiased font-mono relative overflow-hidden"
+    >
+        <div
+            class="absolute inset-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.80]"
+        >
+            <img
+                src="/image.png"
+                alt=""
+                class="w-full h-full object-cover scale-105"
+            />
+        </div>
+
+        <div
+            class="w-full max-w-2xl bg-white border-[4px] border-black rounded-none p-8 sm:p-12 flex flex-col items-center justify-center relative z-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all"
+        >
+            <div class="absolute -top-3 -left-3 text-2xl select-none">✦</div>
+            <div class="absolute -bottom-5 -right-3 text-2xl select-none">
+                ✦
+            </div>
+
+            <div class="w-full flex flex-col items-stretch text-left space-y-8">
+                        <div class="border-4 border-black bg-red-50 p-6 sm:p-8 relative shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row items-start gap-6">
+                            <div class="absolute -top-3.5 left-4 bg-red-600 text-white border-2 border-black text-[10px] font-black uppercase tracking-widest px-2 py-0.5">
+                                1234567890
+                            </div>
+
+                            <div class="flex-shrink-0 w-12 h-12 bg-black flex items-center justify-center relative select-none mt-2 sm:mt-0">
+                                <div class="absolute inset-0 border border-white m-1" />
+                                <span class="text-white font-mono font-black text-xl">
+                                    !
+                                </span>
+                            </div>
+
+                            <div class="space-y-2 flex-1">
+                                <h1 class="text-2xl sm:text-3xl font-black uppercase tracking-tight text-black">
+                                    One more step
+                                </h1>
+                                <p class="text-xs sm:text-sm text-gray-800 leading-relaxed font-mono font-medium">
+                                    You need to link your discord account. 
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-4 w-full pt-2">
+                            <a
+                                href="https://discord.com/app"
+                                class="flex-1 border-2 border-black py-3.5 px-4 text-xs sm:text-sm font-black text-black bg-white hover:bg-black hover:text-white text-center transition-all uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
+                            >
+                                [ Continue ]
+                            </a>
+                            <a
+                                href="https://study.iitm.ac.in/es/faq.html"
+                                class="flex-1 border-2 border-black py-3.5 px-4 text-xs sm:text-sm font-black text-gray-500 bg-gray-50 hover:bg-black hover:text-white text-center transition-all uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
+                            >
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+        </div>
+    </div>
+</Layout>

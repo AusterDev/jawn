@@ -2,13 +2,15 @@ package com.github.AusterDev.jawn.core.factory;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+
 import java.awt.Color;
 import java.time.Instant;
 
 public class EmbedFactory {
-    private static final Color COLOR_ERROR = Color.decode("#FB5012");
-    private static final Color COLOR_WARNING = Color.decode("#CBBAED");
-    private static final Color COLOR_INFO = Color.decode("#093824");
+    public static final Color COLOR_ERROR = Color.decode("#FB5012");
+    public static final Color COLOR_WARNING = Color.decode("#CBBAED");
+    public static final Color COLOR_INFO = Color.decode("#F9DEC9");
 
     /**
      * Generates a standardized error embed.

@@ -41,6 +41,15 @@ public class Config {
     @EnvProperty("BOT_LOGS_CHANNEL_ID")
     private String botLogsChannelId;
 
+    @EnvProperty("EMOJI_SUCCESS")
+    private String emojiSuccess;
+
+    @EnvProperty("EMOJI_FAILURE")
+    private String emojiFailure;
+
+    @EnvProperty("EMOJI_INFO")
+    private String emojiInfo;
+
     private Config() {}
 
     /**
@@ -95,4 +104,9 @@ public class Config {
     public String getWebHost() { return webHost; }
     public String getVerificationLogsChannel() { return verificationLogsChannel; }
     public String getBotLogsChannelId() { return botLogsChannelId; }
+    public String getEmojiSuccess() { return emojiSuccess; }
+    public String getEmojiFailure() { return emojiFailure; }
+    public String getEmojiInfo() {
+        return emojiInfo;
+    }
 }

@@ -44,12 +44,11 @@ public class JawnClient {
 
         this.cogRegistrar = new CogRegistrar(this.jda);
 
-        this.redisManager = new RedisManager();
-        this.redisManager.startListener(config, this);
-
         this.config = config;
-
         this.botLog = new BotLog(this.jda, this.config);
+
+        this.redisManager = new RedisManager();
+
     }
 
     public RedisManager getRedisManager() { return this.redisManager; }
@@ -57,6 +56,7 @@ public class JawnClient {
     public BotLog getBotLog() {
         return botLog;
     }
+    public JDA getJda() { return jda; }
 
     private void registerListeners() {
         this.jda.addEventListener(new CommandListener(this.cogRegistrar));
@@ -70,60 +70,10 @@ public class JawnClient {
         this.cogRegistrar.syncCommands();
     }
 
-    public void verifyUser(boolean verified, String userID, DegreeType degreeType) {
-        User user = this.jda.getUserById(userID);
-        Role role = this.jda.getRoleById(config.getPostVerifiedRoleId());
-
-        TextChannel verificationLogsChannel = this.jda.
-                getChannelById(TextChannel.class, this.config.getVerificationLogsChannel());
-
-        if (verificationLogsChannel == null) {
-            logger.error("Verification channel is NULL");
-            return;
-        }
-
-        if (role == null) {
-            logger.error("Post verification role is NULL");
-            return;
-        }
-
-        if (user == null && !verified) {
-            verificationLogsChannel.sendMessageEmbeds(
-                    EmbedFactory.createWarningEmbed("User with ID `" + userID + "`' used a non-student email address. Therefore they have been rejected.\n\nAlso, the user has already left the server.`")
-            ).queue();
-            return;
-        }
-        if (user == null) {
-            verificationLogsChannel.sendMessageEmbeds(
-                    EmbedFactory.createWarningEmbed("User with ID `" + userID + "` has been verified to belong from `" + degreeType +"` degree, but no role was assigned as they may have left the server.")
-            ).queue();
-            return;
-        }
-
-        if (!verified) {
-            verificationLogsChannel.sendMessageEmbeds(
-                    EmbedFactory.createWarningEmbed("User **`" + user.getName() + "`** (ID: `" + userID + "`) used a non-student email address. Therefore they have been rejected.\n\n*The user will be kicked after 2 days of inactivity.*")
-            ).queue();
-            return;
-        }
-       try {
-           Guild guild = verificationLogsChannel.getGuild();
-           guild.addRoleToMember(user, role).queue();
-
-           verificationLogsChannel.sendMessageEmbeds(
-                   EmbedFactory.createInfoEmbed("User **`" + user.getName() + "`** (ID: `" + user.getId() + "`) has been successfully verified. They are in the **`" + degreeType + "`** degree.")
-           ).queue();
-       } catch (Exception e) {
-           String logID = this.botLog.generateLogId();
-           this.botLog.log(logger, BotLogType.ERROR, logID, "Unexpected error: {}", e);
-       }
-
-    }
-
     public void start() throws InterruptedException {
         this.registerListeners();
         this.registerCogs();
-
         this.jda.awaitReady();
+        this.redisManager.startListener(config, this);
     }
 }

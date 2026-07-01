@@ -16,6 +16,9 @@ public class VerificationSession {
     @JsonProperty("verified")
     private boolean verified;
 
+    @JsonProperty("reason")
+    private String reason;
+
     @JsonProperty("created_at")
     private String createdAt;
 
@@ -27,6 +30,7 @@ public class VerificationSession {
         this.degreeType = null;
         this.verified = false;
         this.createdAt = Instant.now().toString();
+        this.reason = null;
     }
 
     public String getUserId() { return userId; }
@@ -43,4 +47,9 @@ public class VerificationSession {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    public String getReason() {
+        return reason;
+    }
+    public void setReason(String reason) { this.reason = reason; }
 }

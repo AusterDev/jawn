@@ -1,0 +1,111 @@
+---
+import RedisClient from "../../lib/redis";
+import { verifyAccount } from "../../lib/discord.auth";
+import type { VerificationResult } from "../../types";
+
+const params = Astro.url.searchParams;
+const code = params.get("code");
+const state = params.get("state");
+const sessionID = state;
+
+const fallbackUrl = "/jawn/verify/finale";
+
+function redirectWithParams(result: VerificationResult) {
+    const searchParams = new URLSearchParams();
+    searchParams.set("verified", result.verified ? "true" : "false");
+    searchParams.set("user_id", result.user_id || "Unknown");
+    searchParams.set("degree_type", result.degree_type || "NONE");
+    if (result.reason) {
+        searchParams.set("reason", result.reason);
+    }
+    
+    return Astro.redirect(`${fallbackUrl}?${searchParams.toString()}`);
+}
+
+if (!code || !sessionID) {
+    const errorResult: VerificationResult = {
+        user_id: "Unknown",
+        degree_type: "NONE",
+        verified: false,
+        reason: "Invalid callback configuration state. Missing code or session identity.",
+    };
+    return redirectWithParams(errorResult);
+}
+
+async function updateRedisVals(sessionID: string, result: VerificationResult) {
+    const authSessionKey = `auth_session:${sessionID}`;
+    const sessionKey = `session:${sessionID}`;
+
+    const pipeline = RedisClient.pipeline();
+    pipeline.setex(sessionKey, 300, JSON.stringify(result));
+    pipeline.del(authSessionKey);
+    pipeline.publish("user_verified", sessionID);
+    await pipeline.exec();
+}
+
+try {
+    const authSessionKey = `auth_session:${sessionID}`;
+    const rawAuthSession = await RedisClient.get(authSessionKey);
+
+    if (!rawAuthSession) {
+        const errorResult: VerificationResult = {
+            user_id: "Unknown",
+            degree_type: "NONE",
+            verified: false,
+            reason: "Authentication session expired or missing. Please try logging in again.",
+        };
+        return redirectWithParams(errorResult);
+    }
+
+    const authSession = JSON.parse(rawAuthSession);
+    const { discord_user_id, is_allowed, degree } = authSession;
+
+    const finalResult: VerificationResult = {
+        user_id: discord_user_id,
+        degree_type: degree,
+        verified: false,
+        reason: null,
+    };
+
+    if (!is_allowed) {
+        finalResult.reason = "Your student email is not assigned by IIT Madras. Please use your authorized student email address.";
+        await updateRedisVals(sessionID, finalResult);
+        return redirectWithParams(finalResult);
+    }
+
+    let accountsMatch = false;
+    try {
+        accountsMatch = await verifyAccount(discord_user_id, code);
+    } catch (verifyError) {
+        console.error("Discord verification connection or payload exception:", verifyError);
+    }
+
+    if (!accountsMatch) {
+        finalResult.reason = "The authenticated Discord account does not match your initialized session identification profile.";
+        await updateRedisVals(sessionID, finalResult);
+        return redirectWithParams(finalResult);
+    }
+
+    finalResult.verified = true;
+    await updateRedisVals(sessionID, finalResult);
+    return redirectWithParams(finalResult);
+
+} catch (error) {
+    console.error("Critical error inside Discord callback controller:", error);
+
+    const fatalResult: VerificationResult = {
+        user_id: "Unknown",
+        degree_type: "NONE",
+        verified: false,
+        reason: "An internal unexpected pipeline breakdown error occurred.",
+    };
+    return redirectWithParams(fatalResult);
+}
+---
+
+<html>
+    <head>
+        <title>Processing verification...</title>
+    </head>
+    <body> </body>
+</html>

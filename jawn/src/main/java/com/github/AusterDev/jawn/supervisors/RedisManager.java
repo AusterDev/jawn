@@ -2,20 +2,25 @@ package com.github.AusterDev.jawn.supervisors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.AusterDev.jawn.core.Config;
-import com.github.AusterDev.jawn.core.DegreeType;
 import com.github.AusterDev.jawn.core.JawnClient;
+import com.github.AusterDev.jawn.core.boglog.BotLogType;
 import com.github.AusterDev.jawn.core.json.VerificationSession;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.pubsub.RedisPubSubListener;
 import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RedisManager {
     private RedisCommands<String, String> syncCommands;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void startListener(Config config, JawnClient jawnClient) {
+        Logger logger = LoggerFactory.getLogger(RedisManager.class);
+        VerificationManager manager = new VerificationManager(jawnClient.getJda(), config, jawnClient.getBotLog());
+
         RedisURI uri = RedisURI.builder()
                 .withHost(config.getRedisHost())
                 .withPort(config.getRedisPort())
@@ -36,23 +41,17 @@ public class RedisManager {
                         String jsonSession = syncCommands.get("session:" + message);
 
                         if (jsonSession == null) {
-                            System.err.println("Session data expired or missing for ID: " + message);
                             return;
                         }
 
                         VerificationSession session = objectMapper.readValue(jsonSession, VerificationSession.class);
 
-                            String userId = session.getUserId();
-
-                            DegreeType degree = DegreeType.valueOf(session.getDegreeType().toUpperCase());
-
-                            jawnClient.verifyUser(session.isVerified(), userId, degree);
-
+                        manager.listen(session);
                     } catch (IllegalArgumentException e) {
-                        System.err.println("Invalid DegreeType received in session payload.");
+                        jawnClient.getBotLog().log(logger, BotLogType.ERROR, jawnClient.getBotLog().generateLogId(), "Invalid degree type received from redis (web)", e);
+
                     } catch (Exception e) {
-                        System.err.println("Failed to process user verification over Redis Pub/Sub:");
-                        e.printStackTrace();
+                        jawnClient.getBotLog().log(logger, BotLogType.ERROR, jawnClient.getBotLog().generateLogId(), "Failed to process response from redis (web). Exception\n{}", e);
                     }
                 }
             }
@@ -65,7 +64,8 @@ public class RedisManager {
         });
 
         connection.async().subscribe("user_verified");
-        System.out.println("Successfully subscribed non-blockingly to user_verified!");
+        jawnClient.getBotLog()
+                .log(logger, BotLogType.INFO, jawnClient.getBotLog().generateLogId(), "Subscribed to redis: user_verified");
     }
 
     public RedisCommands<String, String> getSyncCommands() {
